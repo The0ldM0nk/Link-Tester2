@@ -30,8 +30,11 @@
 
 String results[5];
 byte keypress;
-                        
-#include "Locator2_Board_Definitions.h"              //specify PCB type
+
+//#include "Locator2_Board_Definitions.h"              //specify PCB type
+
+#define LoRa_Device_in_MB1                        
+#include "Receiver2_Board_Definitions.h"
 
 #include "Program_Definitions.h"  
 #include "Test_Settings.h" 
@@ -76,7 +79,6 @@ void checkforpacket()
 
   if (lora_Ltemp == 96)
   {
-    Serial.println();
     Serial.println(F("CRC Error"));
     lora_RXONLoRa();                                 //ready for next
   }
