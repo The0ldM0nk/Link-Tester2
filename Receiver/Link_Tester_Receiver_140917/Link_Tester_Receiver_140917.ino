@@ -27,20 +27,34 @@
 ******************************************************************************************************
 */
 
+#include "Pin_Definitions.h"                   // this file has the pin definitions used to connec tot the LoRa device
+
+/*
+******************************************************************************************************
+  Definitions for packet types used in this program
+******************************************************************************************************
+*/
+
+const char ACK = 'A';                   //Acknowledge 
+const char ClearToSendCommand = 'c';    //clear to send a packet
+const char LocationCSVPacket = 'S';     //Short loacation packet in CSV ASCII format
+const char LocationBinaryPacket = 's';  //Short location packet in binary format
+const char Testpacket = 'T';            //Test packet
+const char LMLCSVPacket = '8';          //short LML payload; lat,lon,alt in CSV ASCII format
+const char TestMode1 = '1';             //used to switch to Testmode1 settings
+const char TestMode2 = '2';             //used to switch to Testmode2 settings
+const char Broadcast = '*';             //Broadcast address
+const char HABPacket = '$';             //HAB Style location payload in CSV ASCII format
 
 String results[5];
+byte modenumber;
 byte keypress;
+byte lora_TestPower = 10;                //is also start up tone power
 
-//#include "Locator2_Board_Definitions.h"              //specify PCB type
-
-#define LoRa_Device_in_MB1                        
-#include "Receiver2_Board_Definitions.h"
-
-#include "Program_Definitions.h"  
 #include "Test_Settings.h" 
 #include <SPI.h>
-#include "LoRa3.h"
-#include "Binary2.h"
+#include "LoRa_Test.h"
+#include "Binary_Test.h"
 
 
 unsigned int lora_Test1Count[20];	          //buffer where counts of received packets are stored
@@ -57,9 +71,8 @@ void checkforpacket()
 {
   //check if a packet has been received
   byte lora_Ltemp;
-  byte i;
 
-  lora_Ltemp = lora_readRXready();
+  lora_Ltemp = lora_readRXready2();                  //this reads the DIO0 pin, creates less EMI than polling the LoRa device registers.
 
   if (lora_Ltemp == 64)
   {
@@ -340,7 +353,7 @@ void setup()
   pinMode(LED1, OUTPUT);		                     //setup pin for PCB LED
   led_FlashStart();
 
-  Serial.begin(38400);                           //setup Serial console ouput
+  Serial.begin(115200);                           //setup Serial console ouput
   Serial.println(F(programname));
   Serial.println(F(programversion));
   Serial.println(F(dateproduced));
@@ -361,7 +374,7 @@ void setup()
     init_RXLoRaTest1();				                   //Do the initial LoRa Setup
     Serial.println(F("LoRa Tone")); 
     digitalWrite(LED1, HIGH);
-    lora_Tone(1000, 3000, lora_TestPower);       //Transmit an FM tone, 1000hz, 3000ms
+    lora_Tone2(1000, 3000, lora_TestPower);       //Transmit an FM tone, 1000hz, 3000ms
     digitalWrite(LED1, LOW); 
     Serial.println();
   }
@@ -370,9 +383,15 @@ void setup()
     Serial.println(F("LoRa Device Error"));
     systemerror();
   }
+  
+  Serial.println();
+  lora_Print();
+  Serial.println();
 
   init_RXLoRaTest1();                            //do the initial LoRa Setup for testmode 1
   lora_RXONLoRa();
+
+  
 
 }
 

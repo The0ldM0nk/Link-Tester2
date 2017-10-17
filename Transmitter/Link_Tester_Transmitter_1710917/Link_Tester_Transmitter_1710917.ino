@@ -1,9 +1,9 @@
-//LoRaTracker_Link_Tester1_150617.ino
+//Link_Tester_Transmitter_171017.ino
 
 
-#define programname "LoRaTracker_Link_Tester1_150617"
-#define programversion "V1.0"
-#define dateproduced "15/06/17"
+#define programname "Link_Tester_Transmitter_1710917"
+#define programversion "V2.1"
+#define dateproduced "17/10/17"
 #define aurthorname "Stuart Robinson"
 
 #include <Arduino.h>
@@ -13,7 +13,7 @@
   
   LoRaTracker Programs for Arduino
 
-  Copyright of the author Stuart Robinson - 15/06/17
+  Copyright of the author Stuart Robinson - 14/09/17
 
   http://www.LoRaTracker.uk
 
@@ -25,25 +25,48 @@
   The programs are supplied as is, it is up to individual to decide if the programs are suitable for the
   intended purpose and free from errors.
 
-    To do;
+  To do;
 
+ 
 ******************************************************************************************************
 */
+
+
+#include "Pin_Definitions.h"                   // this file has the pin definitions used to connec tot the LoRa device
+
+
+/*
+******************************************************************************************************
+  Definitions for packet types used in this program
+******************************************************************************************************
+*/
+
+const char ACK = 'A';                   //Acknowledge 
+const char ClearToSendCommand = 'c';    //clear to send a packet
+const char LocationCSVPacket = 'S';     //Short loacation packet in CSV ASCII format
+const char LocationBinaryPacket = 's';  //Short location packet in binary format
+const char Testpacket = 'T';            //Test packet
+const char LMLCSVPacket = '8';          //short LML payload; lat,lon,alt in CSV ASCII format
+const char TestMode1 = '1';             //used to switch to Testmode1 settings
+const char TestMode2 = '2';             //used to switch to Testmode2 settings
+const char Broadcast = '*';             //Broadcast address
+const char HABPacket = '$';             //HAB Style location payload in CSV ASCII format
+
 
 //Global Program Variables
 
 unsigned int seq = 0;
 unsigned int testloop = 0;
 byte keypress;
+byte modenumber;
+byte ramv_ThisNode;
+byte lora_TestPower = 10;                //is also start up tone power
 
-#define LoRa_Device_in_MB1
-#include "PIHTracker2_Board_Definitions.h"           //define the board type here
-#include "Program_Definitions.h"  
-#include "Test_Settings.h" 
+
 #include <SPI.h>
-#include "LoRa3.h"
-#include "Binary2.h"
-
+#include "Test_Settings.h" 
+#include "LoRa_Test.h"
+#include "Binary_Test.h"
 
 
 void loop()
@@ -55,11 +78,9 @@ void loop()
   Serial.println(testloop);
   Serial.flush();
 
-  Serial.print(F("Loop Start Tone "));
+  Serial.println(F("Loop Start Tone "));
   Serial.flush();
-  lora_Tone(500, LoopStartTone_lengthmS, start_power);       //Transmit an pseudo FM tone
-  delay(250);
-
+ 
   /*
   *********************************************************
   Start Mode 1 routines
@@ -68,14 +89,16 @@ void loop()
 
 #ifdef EnableMode1
 
-  init_TXLoRaTest2();                                        //make sure we send the change mode at the correct test settings
-  Serial.println();
+  lora_Tone2(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
+  delay(250);
+  
   Serial.print("Send Initialise Test Mode1 ");
+  init_TXLoRaTest2();                                        //make sure we send the change mode at both settings, just in case
   Send_Test1Mode_Packet();                                   //causes RX to switch to mode 1 
   delay(Mode1StartDelaymS);                                  //delay a bit after sending mode switch to allow RX time to print totals
   init_TXLoRaTest1();                                        //now we can go into test mode 1
-  Serial.println();
-  Serial.println();
+  Send_Test1Mode_Packet();                                   //just in case switch from mode2 did not work 
+  delay(Mode1StartDelaymS);                                   
 
   for (lora_TestPower = start_power; lora_TestPower >= end_power; lora_TestPower--)
   {
@@ -141,12 +164,18 @@ void loop()
 
 #ifdef EnableMode2
 
-  init_TXLoRaTest1();                             //make sure we send the change mode at the correct test settings
-  Serial.println();
+  lora_Tone2(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
+  delay(250);
+  lora_Tone2(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
+  delay(250);
+  
   Serial.print("Send Initialise Test Mode2 ");
-  Send_Test2Mode_Packet();                      //causes RX to switch to mode 2
-  delay(Mode1StartDelaymS);                     //delay a bit after sending mode switch to allow RX time to print totals
-  init_TXLoRaTest2();                              //now we can go into test mode 2        
+  init_TXLoRaTest1();                                        //make sure we send the change mode at the correct test settings
+  Send_Test2Mode_Packet();                                   //causes RX to switch to mode 2
+  delay(Mode1StartDelaymS);                                  //delay a bit after sending mode switch to allow RX time to print totals
+  init_TXLoRaTest2();                                        //now we can go into test mode 2        
+  Send_Test2Mode_Packet();                                   //just in case switch from mode1 did not work 
+  delay(Mode1StartDelaymS);                                   
   Serial.println();
   Serial.println();
   delay(2000);
@@ -216,7 +245,7 @@ void Send_HAB_Packet()
   PrintPacket();
   Serial.print(F(" "));
   lora_Send(0, lora_TXEnd, HABPacket, Broadcast, ThisNode, 10, lora_TestPower, NoStrip);   //send the packet, data is in TXbuff from lora_TXStart to lora_TXEnd
-  //lora_TXOFF();                                     //so off time is recorded correctly
+  lora_TXOFF();                                      //so off time is recorded correctly
   Serial.print(F("TX Time "));
   Serial.print(lora_TXTime);
   Serial.print("mS ");
@@ -282,9 +311,9 @@ void buildHABPayload()
            GPSfixtime
           );
 
-  Count = strlen(output_BUFF);                      //how long is the array so far ?
+  Count = strlen(output_BUFF);                                //how long is the array so far ?
 
-  CRC = 0xffff;                                   //start value for CRC16
+  CRC = 0xffff;                                               //start value for CRC16
 
   for (index = 4; index < Count; index++)                     //element 4 is first character after $$$$ at start
   {
@@ -333,17 +362,16 @@ int Build_LocationCSV_Packet()
 
   Count = strlen(output_BUFF);
   lora_TXEnd = Count;
+  return Count;
 }
 
-
-
-
-char Hex(char lchar)
+char Hex(byte lchar)
 {
-  //used in CRC calculation
+  //used in CRC calculation in buildHABPacket
   char Table[] = "0123456789ABCDEF";
   return Table[lchar];
 }
+
 
 
 void PrintPacket()
@@ -360,18 +388,17 @@ void Send_Test1Mode_Packet()
 {
   //causes RX to switch mode
   lora_TXBUFF[0] = '1';
-  lora_Send(0, 0, TestMode1, Broadcast, ThisNode, 10, start_power, NoStrip);
+  lora_Send(0, 0, TestMode1, Broadcast, ThisNode, 10, 17, NoStrip);
   //lora_TXOFF();                                     //so off time is recorded correctly
-  delay(2000);              //leave time for receiver to print running totals
+  delay(1000);              //leave time for receiver to print running totals
 }
 
 void Send_Test2Mode_Packet()
 {
   //causes RX to switch mode
   lora_TXBUFF[0] = '2';
-  lora_Send(0, 0, TestMode2, Broadcast, ThisNode, 10, start_power, NoStrip);
-  //lora_TXOFF();                                     //so off time is recorded correctly
-  delay(2000);              //leave time for receiver to print running totals
+  lora_Send(0, 0, TestMode2, Broadcast, ThisNode, 10, 17, NoStrip);
+  delay(1000);                                        //leave time for receiver to print running totals
 }
 
 
@@ -391,18 +418,18 @@ void Send_LocationCSV_Packet()
 void Send_Binary_Location_Packet()
 {
   Serial.print(F(" "));
-  Serial.print(TestLatitude, 5);
+  Serial.print(TestLatitude, 6);
   Serial.print(F(" "));
-  Serial.print(TestLongitude, 5);
+  Serial.print(TestLongitude, 6);
   Serial.print(F(" "));
-  Serial.print(TestAltitude, 1);
+  Serial.print(TestAltitude);
   Serial.print(F(" "));
   Serial.print(config_byte);
   Serial.print(F(" "));
   Write_Float(0, TestLatitude, lora_TXBUFF);
   Write_Float(4, TestLongitude, lora_TXBUFF);
-  Write_Float(8, TestAltitude, lora_TXBUFF);
-  Write_Byte(12, config_byte, lora_TXBUFF);
+  Write_UInt(8, TestAltitude, lora_TXBUFF);
+  Write_Byte(10, config_byte, lora_TXBUFF);
   #ifdef DEBUG
   Print_Binary_Buffer();
   #endif
@@ -430,8 +457,7 @@ void Print_Binary_Buffer()
 void Send_Test_Packet(char lmode)
 {
   //build and send test packet
-  int count;
-
+ 
   if (lora_TestPower > 9)
   {
     lora_TXBUFF[0] = '1';
@@ -484,34 +510,32 @@ void System_Error()
 void init_TXLoRaTest1()
 {
   //setup for testmode
-  uint32_t freq_temp;
+  float freq_temp;
   lora_Setup1();
-  lora_SetFreq(Frequency1, FrequencyOffset);
+  lora_SetFreq(Frequency1, CalibrationOffset);
   freq_temp = lora_GetFreq();
-  Serial.print(F("Set to Frequency "));
-  Serial.println(freq_temp);
-  lora_SetModem2(test1_Bandwidth, test1_SpreadingFactor, test1_CodeRate, Explicit);	//setup the LoRa modem parameters for test
-#ifdef DEBUG
   Serial.println();
-  lora_Print();
-#endif
+  Serial.print(F("Set to Frequency "));
+  Serial.print(freq_temp,3);
+  Serial.println(F("Mhz"));
+  Serial.println();
+  lora_SetModem2(test1_Bandwidth, test1_SpreadingFactor, test1_CodeRate, Explicit);	//setup the LoRa modem parameters for test
 }
 
 
 void init_TXLoRaTest2()
 {
   //setup for testmode
-  uint32_t freq_temp;
+  float freq_temp;
   lora_Setup2();
-  lora_SetFreq(Frequency2, FrequencyOffset);
+  lora_SetFreq(Frequency2, CalibrationOffset);
   freq_temp = lora_GetFreq();
-  Serial.print(F("Set to Frequency "));
-  Serial.println(freq_temp);
-  lora_SetModem2(test2_Bandwidth, test2_SpreadingFactor, test2_CodeRate, Explicit);  //setup the LoRa modem parameters for test
-#ifdef DEBUG
   Serial.println();
-  lora_Print();
-#endif
+  Serial.print(F("Set to Frequency "));
+  Serial.print(freq_temp,3);
+  Serial.println(F("Mhz"));
+  Serial.println();
+  lora_SetModem2(test2_Bandwidth, test2_SpreadingFactor, test2_CodeRate, Explicit);  //setup the LoRa modem parameters for test
 }
 
 
@@ -565,8 +589,6 @@ void lora_Custom2()
 void lora_RXONLoRa1()
 {
   //puts LoRa device into listen mode and receives packet exits with packet in array lora_RXBUFF[]
-  byte lora_Lvar1, lora_LRegData, lora_LLoop;
-  long lora_Lvar2;
   lora_RXPacketL = 0;
   lora_RXPacketType = 0;
   lora_RXDestination = 0;
@@ -586,8 +608,6 @@ void lora_RXONLoRa1()
 void lora_RXONLoRa2()
 {
   //puts LoRa device into listen mode and receives packet exits with packet in array lora_RXBUFF[]
-  byte lora_Lvar1, lora_LRegData, lora_LLoop;
-  long lora_Lvar2;
   lora_RXPacketL = 0;
   lora_RXPacketType = 0;
   lora_RXDestination = 0;
@@ -608,7 +628,7 @@ void init_RXLoRaTest1()
   //setup for testmode
   modenumber = 1;
   lora_Setup1();
-  lora_SetFreq(Frequency1, FreqOffset);
+  lora_SetFreq(Frequency1, CalibrationOffset);
   lora_SetModem2(test1_Bandwidth, test1_SpreadingFactor, test1_CodeRate, Explicit);  //setup the LoRa modem parameters for test
 }
 
@@ -618,17 +638,17 @@ void init_RXLoRaTest2()
   //setup for testmode
   modenumber = 2;
   lora_Setup1();
-  lora_SetFreq(Frequency2, FreqOffset);
+  lora_SetFreq(Frequency2, CalibrationOffset);
   lora_SetModem2(test2_Bandwidth, test2_SpreadingFactor, test2_CodeRate, Explicit);  //setup the LoRa modem parameters for test
 }
 
 
 void setup()
 {
-  pinMode(LED1, OUTPUT);		        //for PCB LED
+  pinMode(LED1, OUTPUT);		                  //for PCB LED
   Led_FlashStart();
 
-  Serial.begin(38400);                        //setup Serial console ouput
+  Serial.begin(115200);                        //setup Serial console ouput
   Serial.println(F(programname));
   Serial.println(F(programversion));
   Serial.println(F(dateproduced));
@@ -636,24 +656,24 @@ void setup()
   Serial.print(F("Node "));
   Serial.print(ThisNode);
   Serial.println();
-  Serial.println();
 
   SPI.begin();
   SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
 
-  pinMode(lora_NReset, OUTPUT);			        //LoRa Device reset line
-  pinMode (lora_NSS, OUTPUT);			          //LoRa Device select line
+  pinMode(lora_NReset, OUTPUT);			           //LoRa Device reset line
+  pinMode (lora_NSS, OUTPUT);			             //LoRa Device select line
   digitalWrite(lora_NSS, HIGH);
   digitalWrite(lora_NReset, HIGH);
+
+  ramv_ThisNode = ThisNode;
 
   if (lora_CheckDevice() == true)
   {
     init_TXLoRaTest1();
     digitalWrite(LED1, HIGH);
-    Serial.println();
     Serial.print(F("Start Test Tone "));
-    lora_Tone(1000, 1000, 2);                   //Transmit an FM tone, 1000hz, 1000ms, 2dBm
-    lora_TXOFF();                                     //so off time is recorded correctly
+    lora_Tone2(1000, 1000, 2);                   //Transmit an FM tone, 1000hz, 1000ms, 2dBm
+    lora_TXOFF();                               //so off time is recorded correctly
     digitalWrite(LED1, LOW);
     Serial.println(F(" - Finished"));
     Serial.println();
@@ -664,7 +684,9 @@ void setup()
     System_Error();
   }
 
-  delay(2000);
+  lora_Print();
+  Serial.println();
+  //delay(1000);
 
 }
 
