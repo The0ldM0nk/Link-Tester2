@@ -1,4 +1,4 @@
-//LoRa3.h
+//LoRa_Test.h
 /*
 *******************************************************************************************************************************
   Easy Build LoRaTracker Programs for Arduino
@@ -22,13 +22,7 @@
   Note: This library must be considered as a work in progress, no guarantees. 
   
   To Do:
-  Add check for RX packet longer than buffer can cope with.
-   
-  Change assignments to be unequivocal, so that varible length is defined, not assumed;
-  Signed variabled to be changed to - int8_t, int16_t, int32_t, int64_t
-  UnSigned variabled to be changed to - uint8_t, uint16_t, uint32_t, uint64_t
  
-
 
 *******************************************************************************************************************************
 */
@@ -462,6 +456,7 @@ void lora_RXBuffPrint(byte PrintType)
   //PrintType = 2 = HEX
   byte bufferData;
   //byte index, bufferData;
+  
   Serial.write(lora_RXPacketType);
   Serial.write(lora_RXDestination);
   Serial.write(lora_RXSource);
