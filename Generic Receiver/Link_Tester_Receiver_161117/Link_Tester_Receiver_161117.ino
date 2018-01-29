@@ -49,7 +49,7 @@ const char HABPacket = '$';             //HAB Style location payload in CSV ASCI
 String results[5];
 byte modenumber;
 byte keypress;
-byte lora_TestPower = 10;                //is also start up tone power
+byte lora_TestPower = 2;                //is also start up tone power
 
 unsigned long Mode1_Packet_Count = 0;
 unsigned long Mode2_Packet_Count = 0;
@@ -271,16 +271,26 @@ void print_Test1Count()
   Serial.println(F("dBm"));
   }
 
+  Serial.println();
   for (i = 17; i >= 2; i--)
   {
     Serial.print(i);
-    Serial.print(",");
+    Serial.print("dBm,");
     j = lora_Test1Count[i];
     Serial.print(j);
     Serial.print("  ");
   }
-
   Serial.println();
+
+  Serial.print("CSV");
+  for (i = 17; i >= 2; i--)
+  {
+    Serial.print(",");
+    j = lora_Test1Count[i];
+    Serial.print(j);
+  }
+  Serial.println();
+  
 }
 
 
@@ -305,16 +315,25 @@ void print_Test2Count()
   Serial.print(Mode2_Max_Power);
   Serial.println(F("dBm"));
   }
-
+  
+  Serial.println();
   for (i = 17; i >= 2; i--)
   {
     Serial.print(i);
-    Serial.print(",");
-    j = lora_Test2Count[i];
+    Serial.print("dBm,");
+    j = lora_Test1Count[i];
     Serial.print(j);
     Serial.print("  ");
   }
+  Serial.println();
   
+  Serial.print("CSV");
+  for (i = 17; i >= 2; i--)
+  {
+    Serial.print(",");
+    j = lora_Test1Count[i];
+    Serial.print(j);
+  }
   Serial.println();
 }
 
@@ -469,12 +488,14 @@ void setup()
 
   if (lora_CheckDevice() == true)
   {
+    #ifdef EnableTone
     init_RXLoRaTest1();				                   //Do the initial LoRa Setup
     Serial.println(F("LoRa Tone"));
     digitalWrite(LED1, HIGH);
-    lora_Tone2(1000, 3000, lora_TestPower);       //Transmit an FM tone, 1000hz, 3000ms
+    lora_Tone(1000, 3000, 2);       //Transmit an FM tone, 1000hz, 3000ms
     digitalWrite(LED1, LOW);
     Serial.println();
+    #endif
   }
   else
   {

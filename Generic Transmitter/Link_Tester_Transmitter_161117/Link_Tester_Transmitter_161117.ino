@@ -59,7 +59,7 @@ unsigned int seq = 0;
 unsigned int testloop = 0;
 byte keypress;
 byte modenumber;
-byte ramv_ThisNode;
+byte ramc_ThisNode;
 byte lora_TestPower = 10;                //is also start up tone power
 
 #include <SPI.h>
@@ -89,7 +89,7 @@ void loop()
 
 #ifdef EnableMode1
 
-  lora_Tone2(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
+  lora_Tone(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
   delay(250);
   
   init_TXLoRaTest1();                                         //setup for test mode 1
@@ -168,9 +168,9 @@ void loop()
 
 #ifdef EnableMode2
 
-  lora_Tone2(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
+  lora_Tone(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
   delay(250);
-  lora_Tone2(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
+  lora_Tone(500, LoopStartTone_lengthmS, start_power);       //Transmit a pseudo FM tone
   delay(250);
   
   init_TXLoRaTest2();                                         //setup for test mode 2        
@@ -260,7 +260,7 @@ byte buildHABPayload()
 {
   //build the long tracker payload
   unsigned int index, index2, hours, mins, seconds, alt, sats, volts, internaltemperature, resets;
-  unsigned int ramv_Current_config, TRStatus, runmAhr, GPSfixtime;
+  unsigned int ramc_Current_config, TRStatus, runmAhr, GPSfixtime;
   unsigned int CRC;
   byte Count, len;
   byte max_length = 128;
@@ -278,7 +278,7 @@ byte buildHABPayload()
   volts = 3999;
   internaltemperature = -10;
   resets = 11;
-  ramv_Current_config = 0x02;
+  ramc_Current_config = 0x02;
   TRStatus = 0x81;
   runmAhr = 45;
   calibration = 2000;
@@ -288,7 +288,7 @@ byte buildHABPayload()
   len = sizeof(lora_TXBUFF);
   memset(lora_TXBUFF, 0, len);                                 //clear array to 0s
 
-  node[0] = ramv_ThisNode;
+  node[0] = ramc_ThisNode;
   node[1] = 0;
 
   Count = snprintf((char*) lora_TXBUFF,
@@ -307,7 +307,7 @@ byte buildHABPayload()
            volts,
            internaltemperature,
            resets,
-           ramv_Current_config,
+           ramc_Current_config,
            TRStatus,
            runmAhr,
            CalibrationArray,
@@ -650,14 +650,14 @@ void setup()
   digitalWrite(lora_NSS, HIGH);
   digitalWrite(lora_NReset, HIGH);
 
-  ramv_ThisNode = ThisNode;
+  ramc_ThisNode = ThisNode;
 
   if (lora_CheckDevice() == true)
   {
     init_TXLoRaTest1();
     digitalWrite(LED1, HIGH);
     Serial.print(F("Start Test Tone "));
-    lora_Tone2(1000, 1000, 2);                   //Transmit an FM tone, 1000hz, 1000ms, 2dBm
+    lora_Tone(1000, 1000, 2);                   //Transmit an FM tone, 1000hz, 1000ms, 2dBm
     lora_TXOFF();                               //so off time is recorded correctly
     digitalWrite(LED1, LOW);
     Serial.println(F(" - Finished"));

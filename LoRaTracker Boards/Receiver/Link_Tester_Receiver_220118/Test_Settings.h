@@ -1,10 +1,11 @@
 //Test_Settings.h
+
 /*
 ******************************************************************************************************
 
 LoRaTracker Programs for Arduino
 
-Copyright of the author Stuart Robinson - 14/09/2017
+Copyright of the author Stuart Robinson - 22/1/18
 
 http://www.LoRaTracker.uk
 
@@ -23,7 +24,11 @@ To Do:
 ******************************************************************************************************
 */
 
-#define DEBUG
+//#define DEBUG                                   //if defined enables extra debug output to serial monitor
+//#define LORADEBUG                               //if defined enables extra LoRa debug output to serial monitor
+
+#define LORA_AFC                                  //for receiver, uses AFC if defined
+
 
 #define CalibrationOffset 0                       //adjustment for frequency in Hz, assumed at room temp
 #define Payload_buffer 128
@@ -35,8 +40,8 @@ To Do:
 #define SendHABPacket                             //Enable send of HAB Style packet
 
 #define EnableMode1                               //Enable send of mode 1 packets
-#define EnableMode2                               //Enable send of mode 2 packets
-
+//#define EnableMode2                               //Enable send of mode 2 packets
+//#define EnableTone                              //Enable ident tone at startup, DO NOT ENABLE IF USING LNA ON RECEIVER
 #define lora_RXBUFF_Size 128
 #define lora_TXBUFF_Size 128
 
@@ -44,8 +49,8 @@ To Do:
 
 //LoRa Modem Parameters mode1
 const unsigned long Frequency1 = 434400000;     //mode1 frequency
-#define test1_Bandwidth BW62500                 //LoRa bandwidth
-#define test1_SpreadingFactor SF8               //LoRa spreading factor
+#define test1_Bandwidth BW125000                //LoRa bandwidth
+#define test1_SpreadingFactor SF7               //LoRa spreading factor
 #define test1_CodeRate CR45                     //LoRa coding rate
 
 const byte start_power = 17;                    //Start power for transmissions
@@ -53,8 +58,8 @@ const byte end_power = 2;                       //End power for transmissions
 
 //LoRa Modem Parameters mode2
 const unsigned long Frequency2 = 434400000;     //mode2 frequency
-#define test2_Bandwidth BW62500                 //LoRa bandwidth
-#define test2_SpreadingFactor SF10              //LoRa spreading factor
+#define test2_Bandwidth BW7800                  //LoRa bandwidth
+#define test2_SpreadingFactor SF8              //LoRa spreading factor
 #define test2_CodeRate CR45                     //LoRa coding rate
 
 const byte Deviation = 0x52;    //typical deviation for tones
